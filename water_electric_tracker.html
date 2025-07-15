@@ -299,7 +299,7 @@
                 <div class="form-group">
                     <label for="electric">⚡ 剩余电量</label>
                     <div class="input-wrapper">
-                        <input type="number" id="electric" name="electric" step="0.1" required>
+                        <input type="number" id="electric" name="electric" step="0.1"></label><br>
                         <span class="unit">%</span>
                     </div>
                 </div>
@@ -307,8 +307,7 @@
                 <div class="form-group">
                     <label for="water">💧 剩余水量</label>
                     <div class="input-wrapper">
-                        <input type="number" id="water" name="water" step="0.1" required>
-                        <span class="unit">L</span>
+                        <input type="number" id="water" name="water" step="0.1"></label><br>
                     </div>
                 </div>
 
@@ -400,11 +399,9 @@
             const encodedTableName = encodeURIComponent(TABLE_NAME);
             const url = `${SUPABASE_URL}/rest/v1/${encodedTableName}`;
             
-            const data = {
-                electric: parseInt(electric),
-                water: parseFloat(water),
-                created_at: new Date().toISOString()
-            };
+            const data = { created_at: new Date().toISOString() };
+		if (electric !== '') data.electric = parseFloat(electric);
+		if (water !== '') data.water = parseFloat(water);
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -492,8 +489,8 @@
             const electric = document.getElementById('electric').value;
             const water = document.getElementById('water').value;
 
-            if (!electric || !water) {
-                showStatus('请填写完整的电量和水量数据', 'error');
+            if (!electric && !water) {
+                showStatus('请至少填写电量或', 'error');
                 return;
             }
 
