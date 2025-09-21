@@ -1,533 +1,651 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>房间监控 - 电量水量记录</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-            color: #333;
-        }
-
-        .container {
-            max-width: 400px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px 25px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: #718096;
-            font-size: 14px;
-        }
-
-        .form-section {
-            margin-bottom: 30px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: 600;
-            color: #4a5568;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-
-        .input-wrapper {
-            position: relative;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            background: #fff;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        .unit {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #a0aec0;
-            font-weight: 500;
-            pointer-events: none;
-        }
-
-        .submit-btn {
-            width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        }
-
-        .submit-btn:active {
-            transform: translateY(0);
-        }
-
-        .submit-btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .loading {
-            display: none;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .loading::after {
-            content: '';
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-top: 2px solid white;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .records-section {
-            margin-top: 40px;
-        }
-
-        .section-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .records-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .record-item {
-            background: #f7fafc;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border-left: 4px solid #667eea;
-            transition: all 0.3s ease;
-        }
-
-        .record-item:hover {
-            background: #edf2f7;
-            transform: translateX(4px);
-        }
-
-        .record-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .record-time {
-            font-size: 12px;
-            color: #718096;
-            font-weight: 500;
-        }
-
-        .record-data {
-            display: flex;
-            gap: 20px;
-        }
-
-        .data-item {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .electric-icon {
-            color: #f6ad55;
-        }
-
-        .water-icon {
-            color: #4299e1;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #a0aec0;
-        }
-
-        .empty-state svg {
-            width: 48px;
-            height: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        .status-message {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            font-weight: 500;
-            display: none;
-        }
-
-        .status-success {
-            background: #c6f6d5;
-            color: #22543d;
-            border: 1px solid #9ae6b4;
-        }
-
-        .status-error {
-            background: #fed7d7;
-            color: #742a2a;
-            border: 1px solid #fc8181;
-        }
-
-        /* 响应式设计 */
-        @media (max-width: 480px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                padding: 20px 15px;
-            }
-            
-            .header h1 {
-                font-size: 20px;
-            }
-            
-            .record-data {
-                gap: 15px;
-            }
-        }
-
-        /* 滚动条样式 */
-        .records-list::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        .records-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-
-        .records-list::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-
-        .records-list::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>房间监控 - 电量水量记录</title>
+  <style>
+    :root{
+      --primary-color:#667eea;--primary-dark:#553c9a;--bg-color:#f8fafc;--card-bg:#ffffff;--text-primary:#2d3748;--text-secondary:#718096;--border-color:#e2e8f0;--hover-bg:#f7fafc;--record-bg:#f7fafc;--success-bg:#c6f6d5;--success-text:#22543d;--success-border:#9ae6b4;--error-bg:#fed7d7;--error-text:#742a2a;--error-border:#fc8181;--positive-color:#48bb78;--negative-color:#f56565;--neutral-color:#a0aec0
+    }
+    [data-theme="dark"]{
+      --primary-color:#4c51bf;--primary-dark:#553c9a;--bg-color:#1a202c;--card-bg:#2d3748;--text-primary:#f7fafc;--text-secondary:#a0aec0;--border-color:#4a5568;--hover-bg:#4a5568;--record-bg:#4a5568;--success-bg:#22543d;--success-text:#c6f6d5;--success-border:#38a169;--error-bg:#742a2a;--error-text:#fed7d7;--error-border:#e53e3e;--positive-color:#68d391;--negative-color:#fc8181;--neutral-color:#718096
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+      background:var(--bg-color);min-height:100vh;padding:20px;color:var(--text-primary);transition:all .3s ease
+    }
+    .main-container{
+      max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:start
+    }
+    .left-panel,.right-panel{
+      background:var(--card-bg);border-radius:20px;padding:30px 25px;box-shadow:0 8px 32px rgba(0,0,0,.1);transition:all .3s ease
+    }
+    .header{position:relative;margin-bottom:24px;text-align:left}
+    .theme-toggle{
+      position:absolute;top:0;right:0;background:var(--record-bg);border:2px solid var(--border-color);border-radius:50%;
+      width:40px;height:40px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .3s ease
+    }
+    .theme-toggle:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+    .header h1{font-size:22px;font-weight:800;margin-bottom:6px}
+    .header p{color:var(--text-secondary);font-size:13px}
+    .config-section{background:var(--record-bg);border-radius:12px;padding:16px 16px 12px;border:2px solid var(--border-color);margin-bottom:16px}
+    .config-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .form-group{margin-bottom:14px}
+    .form-group label{display:block;font-weight:700;color:var(--text-primary);margin-bottom:6px;font-size:13px}
+    .input-wrapper{position:relative}
+    .form-group input{
+      width:100%;padding:12px 16px;border:2px solid var(--border-color);border-radius:12px;font-size:15px;background:var(--card-bg);color:var(--text-primary);transition:all .2s ease
+    }
+    .form-group input:focus{outline:none;border-color:var(--primary-color);box-shadow:0 0 0 3px rgba(102,126,234,.12)}
+    .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--text-secondary);font-weight:600;pointer-events:none}
+    .consumption-display{
+      position:absolute;right:48px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;padding:3px 8px;border-radius:12px;opacity:0;transition:all .2s ease;white-space:nowrap
+    }
+    .consumption-display.show{opacity:1}
+    .consumption-display.consumed{color:var(--negative-color);background:rgba(245,101,101,.1)}
+    .consumption-display.saved{color:var(--positive-color);background:rgba(72,187,120,.12)}
+    .consumption-display.neutral{color:var(--neutral-color);background:rgba(160,174,192,.12)}
+    .submit-btn{
+      width:100%;padding:14px;background:linear-gradient(135deg,var(--primary-color) 0%,var(--primary-dark) 100%);color:#fff;border:none;border-radius:12px;
+      font-size:15px;font-weight:800;cursor:pointer;transition:all .2s ease;position:relative;overflow:hidden
+    }
+    .submit-btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(102,126,234,.28)}
+    .submit-btn:disabled{opacity:.6;cursor:not-allowed}
+    .loading{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)}
+    .loading::after{content:'';width:18px;height:18px;border:2px solid rgba(255,255,255,.35);border-top:2px solid #fff;border-radius:50%;animation:spin 1s linear infinite}
+    @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+    .status-message{display:none;margin:10px 0 16px;padding:10px 12px;border-radius:10px;font-weight:700;font-size:13px}
+    .status-success{background:var(--success-bg);color:var(--success-text);border:1px solid var(--success-border)}
+    .status-error{background:var(--error-bg);color:var(--error-text);border:1px solid var(--error-border)}
+    .records-section{}
+    .section-title{font-size:18px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .time-selector{position:sticky;top:0;z-index:5;background:var(--card-bg);display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;padding-bottom:6px}
+    .time-btn{
+      padding:6px 12px;border:2px solid var(--border-color);border-radius:16px;background:var(--card-bg);color:var(--text-primary);font-size:11px;font-weight:800;cursor:pointer;transition:all .2s ease
+    }
+    .time-btn:hover{background:var(--hover-bg)}
+    .time-btn.active{background:linear-gradient(135deg,var(--primary-color) 0%,var(--primary-dark) 100%);color:#fff;border-color:transparent}
+    .statistics-section{background:var(--record-bg);border-radius:12px;padding:16px;border:1px solid var(--border-color);margin-bottom:12px}
+    .stats-title{font-size:14px;font-weight:800;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+    .stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:10px}
+    .stat-item{background:var(--card-bg);border-radius:10px;padding:10px;text-align:center;border:1px solid var(--border-color);transition:all .2s ease}
+    .stat-item:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.08)}
+    .stat-label{font-size:10px;color:var(--text-secondary);margin-bottom:2px;font-weight:700}
+    .stat-value{font-size:14px;font-weight:900;display:flex;align-items:center;justify-content:center;gap:4px}
+    .stat-value.electric{color:#f6ad55}.stat-value.water{color:#4299e1}
+    .comparison-section{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .comparison-item{background:var(--card-bg);border-radius:10px;padding:10px;border:1px solid var(--border-color)}
+    .comparison-title{font-size:11px;color:var(--text-secondary);margin-bottom:6px;font-weight:800}
+    .comparison-values{display:flex;justify-content:space-between;gap:8px}
+    .comparison-value{text-align:center;flex:1}
+    .comparison-label{font-size:9px;color:var(--text-secondary)}
+    .comparison-number{font-size:12px;font-weight:800}
+    .trend-indicator{margin-top:4px;font-size:10px;font-weight:900;padding:2px 6px;border-radius:10px;text-align:center}
+    .trend-up{color:var(--negative-color);background:rgba(245,101,101,.1)}
+    .trend-down{color:var(--positive-color);background:rgba(72,187,120,.12)}
+    .trend-same{color:var(--neutral-color);background:rgba(160,174,192,.12)}
+    .history-toggle{background:var(--record-bg);border:2px solid var(--border-color);border-radius:10px;padding:10px;margin:12px 0;cursor:pointer;display:flex;align-items:center;justify-content:space-between}
+    .history-toggle:hover{background:var(--hover-bg)}
+    .history-toggle-text{font-size:14px;font-weight:800}
+    .history-toggle-icon{font-size:16px;transition:transform .2s ease}
+    .history-toggle.collapsed .history-toggle-icon{transform:rotate(-90deg)}
+    .records-container{max-height:520px;overflow-y:auto;padding-right:5px}
+    .records-list{display:none}.records-list.expanded{display:block}
+    .month-group{margin-bottom:16px}
+    .month-header{font-size:12px;font-weight:900;color:var(--text-secondary);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border-color)}
+    .record-item{background:var(--record-bg);border-radius:10px;padding:10px;margin-bottom:8px;border-left:3px solid var(--primary-color);transition:all .2s ease}
+    .record-item:hover{background:var(--hover-bg);transform:translateX(4px)}
+    .record-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .record-time{font-size:10px;color:var(--text-secondary);font-weight:700}
+    .consumption-info{font-size:9px;color:var(--text-secondary);font-style:italic}
+    .record-data{display:flex;gap:14px}
+    .data-item{display:flex;align-items:center;gap:4px;font-size:12px;font-weight:800}
+    .electric-icon{color:#f6ad55}.water-icon{color:#4299e1}
+    .empty-state{text-align:center;padding:40px 20px;color:var(--text-secondary)}
+    .empty-state svg{width:48px;height:48px;margin-bottom:16px;opacity:.5}
+    @media (max-width:768px){
+      body{padding:14px}
+      .main-container{grid-template-columns:1fr;gap:18px;max-width:520px}
+      .left-panel,.right-panel{padding:18px 14px}
+      .header h1{font-size:20px}
+      .time-selector{gap:4px}
+      .time-btn{padding:4px 8px;font-size:10px}
+      .stats-grid{grid-template-columns:1fr}
+      .comparison-section{grid-template-columns:1fr}
+      .consumption-display{position:static;transform:none;margin-top:4px;display:inline-block}
+      .unit{right:18px}
+    }
+    .records-container::-webkit-scrollbar{width:6px}
+    .records-container::-webkit-scrollbar-track{background:var(--border-color);border-radius:3px}
+    .records-container::-webkit-scrollbar-thumb{background:var(--text-secondary);border-radius:3px}
+    .records-container::-webkit-scrollbar-thumb:hover{background:var(--text-primary)}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🏠 Ryan's Room</h1>
-            <p>电量水量监控系统</p>
+  <div class="main-container">
+    <!-- 左：配置 & 录入 -->
+    <div class="left-panel">
+      <div class="header">
+        <button class="theme-toggle" id="themeToggle">🌙</button>
+        <h1>🏠 Ryan's Room</h1>
+        <p>电量水量监控系统</p>
+      </div>
+
+      <div class="config-section">
+        <div class="config-title">⚙️ Supabase 配置</div>
+        <div class="form-group">
+          <label for="supabaseUrl">Supabase URL</label>
+          <input id="supabaseUrl" type="text" placeholder="输入你的 Supabase URL"/>
         </div>
-
-        <div class="status-message" id="statusMessage"></div>
-
-        <div class="form-section">
-            <form id="dataForm">
-                <div class="form-group">
-                    <label for="electric">⚡ 剩余电量</label>
-                    <div class="input-wrapper">
-                        <input type="number" id="electric" name="electric" step="0.1"></label><br>
-                        <span class="unit">%</span>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label for="water">💧 剩余水量</label>
-                    <div class="input-wrapper">
-                        <input type="number" id="water" name="water" step="0.1"></label><br>
-                    </div>
-                </div>
-
-                <button type="submit" class="submit-btn" id="submitBtn">
-                    <span class="btn-text">提交数据</span>
-                    <div class="loading" id="loading"></div>
-                </button>
-            </form>
+        <div class="form-group">
+          <label for="supabaseKey">API Key</label>
+          <input id="supabaseKey" type="password" placeholder="输入你的 Supabase API Key"/>
         </div>
+        <div class="form-group">
+          <label for="tableName">表名</label>
+          <input id="tableName" type="text" value="Ryan's room" placeholder="输入表名"/>
+        </div>
+        <button class="submit-btn" id="saveConfigBtn">保存配置</button>
+      </div>
 
-        <div class="records-section">
-            <div class="section-title">
-                📊 最近记录
+      <div class="status-message" id="statusMessage" aria-live="polite"></div>
+
+      <div class="form-section">
+        <form id="dataForm">
+          <div class="form-group">
+            <label for="electric">⚡ 剩余电量</label>
+            <div class="input-wrapper">
+              <input id="electric" name="electric" type="number" step="0.1" placeholder="如 78.5"/>
+              <div id="electricDiff" class="consumption-display"></div>
+              <span class="unit">%</span>
             </div>
-            <div class="records-list" id="recordsList">
-                <div class="empty-state" id="emptyState">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                    <p>暂无记录数据</p>
-                </div>
+          </div>
+
+          <div class="form-group">
+            <label for="water">💧 剩余水量</label>
+            <div class="input-wrapper">
+              <input id="water" name="water" type="number" step="0.1" placeholder="如 20"/>
+              <div id="waterDiff" class="consumption-display"></div>
+              <span class="unit">L</span>
             </div>
-        </div>
+          </div>
+
+          <button id="submitBtn" type="submit" class="submit-btn">
+            <span class="btn-text">提交数据</span>
+            <div id="loading" class="loading"></div>
+          </button>
+        </form>
+      </div>
     </div>
 
-    <script>
-        // Supabase 配置 - 需要用户填入实际的值
-        const SUPABASE_URL = 'https://csnectuwidjlzdrgozhj.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzbmVjdHV3aWRqbHpkcmdvemhqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI1ODMzMTUsImV4cCI6MjA2ODE1OTMxNX0.Ukd-v0AXmqJ2nIT5DH4oKjmcP0b8KCT4dy-ADu6esCw';
-        const TABLE_NAME = "Ryan's room";
+    <!-- 右：统计 & 记录 -->
+    <div class="right-panel">
+      <div class="records-section">
+        <div class="section-title">📊 数据统计</div>
 
-        // DOM 元素
-        const form = document.getElementById('dataForm');
-        const submitBtn = document.getElementById('submitBtn');
-        const btnText = document.querySelector('.btn-text');
-        const loading = document.getElementById('loading');
-        const statusMessage = document.getElementById('statusMessage');
-        const recordsList = document.getElementById('recordsList');
-        const emptyState = document.getElementById('emptyState');
+        <div class="time-selector" role="tablist" aria-label="按月查看">
+          <button class="time-btn active" data-period="current" role="tab" aria-selected="true">本月</button>
+          <button class="time-btn" data-period="1" role="tab" aria-selected="false">上月</button>
+          <button class="time-btn" data-period="2" role="tab" aria-selected="false">2个月前</button>
+          <button class="time-btn" data-period="3" role="tab" aria-selected="false">3个月前</button>
+          <button class="time-btn" data-period="4" role="tab" aria-selected="false">4个月前</button>
+          <button class="time-btn" data-period="5" role="tab" aria-selected="false">5个月前</button>
+          <button class="time-btn" data-period="6" role="tab" aria-selected="false">6个月前</button>
+        </div>
 
-        // 显示状态消息
-        function showStatus(message, type = 'success') {
-            statusMessage.textContent = message;
-            statusMessage.className = `status-message status-${type}`;
-            statusMessage.style.display = 'block';
-            
-            setTimeout(() => {
-                statusMessage.style.display = 'none';
-            }, 3000);
-        }
+        <div id="statisticsSection" class="statistics-section" style="display:none">
+          <div class="stats-title">📈 消耗统计</div>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-label">电量消耗（首末差）</div>
+              <div id="electricConsumptionTotal" class="stat-value electric">⚡ 0%</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">水量消耗（首末差）</div>
+              <div id="waterConsumptionTotal" class="stat-value water">💧 0L</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">平均剩余电量</div>
+              <div id="avgElectric" class="stat-value electric">⚡ 0%</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">平均剩余水量</div>
+              <div id="avgWater" class="stat-value water">💧 0L</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">记录次数</div>
+              <div id="totalRecords" class="stat-value">0 次</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-label">最低电量</div>
+              <div id="minElectric" class="stat-value electric">⚡ 0%</div>
+            </div>
+          </div>
 
-        // 设置加载状态
-        function setLoading(isLoading) {
-            if (isLoading) {
-                submitBtn.disabled = true;
-                btnText.style.opacity = '0';
-                loading.style.display = 'block';
-            } else {
-                submitBtn.disabled = false;
-                btnText.style.opacity = '1';
-                loading.style.display = 'none';
-            }
-        }
-
-        // 格式化时间为人类可读格式
-        function formatTimeAgo(dateString) {
-            const now = new Date();
-            const date = new Date(dateString);
-            const diffInSeconds = Math.floor((now - date) / 1000);
-
-            if (diffInSeconds < 60) {
-                return '刚刚';
-            } else if (diffInSeconds < 3600) {
-                const minutes = Math.floor(diffInSeconds / 60);
-                return `${minutes}分钟前`;
-            } else if (diffInSeconds < 86400) {
-                const hours = Math.floor(diffInSeconds / 3600);
-                return `${hours}小时前`;
-            } else if (diffInSeconds < 2592000) {
-                const days = Math.floor(diffInSeconds / 86400);
-                return `${days}天前`;
-            } else {
-                return date.toLocaleDateString('zh-CN');
-            }
-        }
-
-        // 提交数据到 Supabase
-        async function submitData(electric, water) {
-            const encodedTableName = encodeURIComponent(TABLE_NAME);
-            const url = `${SUPABASE_URL}/rest/v1/${encodedTableName}`;
-            
-            const data = { created_at: new Date().toISOString() };
-		if (electric !== '') data.electric = parseFloat(electric);
-		if (water !== '') data.water = parseFloat(water);
-
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'Prefer': 'return=minimal'
-                },
-                body: JSON.stringify(data)
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return response;
-        }
-
-        // 获取最近的记录
-        async function fetchRecords() {
-            const encodedTableName = encodeURIComponent(TABLE_NAME);
-            const url = `${SUPABASE_URL}/rest/v1/${encodedTableName}?select=*&order=created_at.desc&limit=10`;
-
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            return await response.json();
-        }
-
-        // 渲染记录列表
-        function renderRecords(records) {
-            if (records.length === 0) {
-                emptyState.style.display = 'block';
-                return;
-            }
-
-            emptyState.style.display = 'none';
-            
-            const recordsHTML = records.map(record => `
-                <div class="record-item">
-                    <div class="record-header">
-                        <div class="record-time">${formatTimeAgo(record.created_at)}</div>
-                    </div>
-                    <div class="record-data">
-                        <div class="data-item">
-                            <span class="electric-icon">⚡</span>
-                            <span>${record.electric}%</span>
-                        </div>
-                        <div class="data-item">
-                            <span class="water-icon">💧</span>
-                            <span>${record.water}L</span>
-                        </div>
-                    </div>
+          <div id="comparisonSection" class="comparison-section" style="display:none">
+            <div class="comparison-item">
+              <div class="comparison-title">📊 电量消耗对比</div>
+              <div class="comparison-values">
+                <div class="comparison-value">
+                  <div class="comparison-label">本月</div>
+                  <div id="currentElectricConsumption" class="comparison-number">0%</div>
                 </div>
-            `).join('');
+                <div class="comparison-value">
+                  <div class="comparison-label">上月</div>
+                  <div id="prevElectricConsumption" class="comparison-number">0%</div>
+                </div>
+              </div>
+              <div id="electricTrend" class="trend-indicator"></div>
+            </div>
+            <div class="comparison-item">
+              <div class="comparison-title">💧 水量消耗对比</div>
+              <div class="comparison-values">
+                <div class="comparison-value">
+                  <div class="comparison-label">本月</div>
+                  <div id="currentWaterConsumption" class="comparison-number">0L</div>
+                </div>
+                <div class="comparison-value">
+                  <div class="comparison-label">上月</div>
+                  <div id="prevWaterConsumption" class="comparison-number">0L</div>
+                </div>
+              </div>
+              <div id="waterTrend" class="trend-indicator"></div>
+            </div>
+          </div>
+        </div>
 
-            recordsList.innerHTML = recordsHTML;
+        <div id="historyToggle" class="history-toggle collapsed">
+          <span class="history-toggle-text">📋 历史记录</span>
+          <span class="history-toggle-icon">▼</span>
+        </div>
+
+        <div class="records-container">
+          <div id="recordsList" class="records-list" aria-live="polite">
+            <div id="emptyState" class="empty-state">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              <p>暂无记录数据</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== 全局 =====
+    let configManager, themeManager, dataManager, uiManager, lastRecord = null;
+
+    // ===== 配置管理 =====
+    class ConfigManager{
+      constructor(){ this.config = this.loadConfig(); }
+      loadConfig(){
+        try{
+          const saved = localStorage.getItem('supabase_config');
+          return saved ? JSON.parse(saved) : { url:'', key:'', tableName:"Ryan's room" };
+        }catch(e){
+          return { url:'', key:'', tableName:"Ryan's room" };
         }
+      }
+      saveConfig(url,key,tableName){
+        this.config = {url,key,tableName};
+        localStorage.setItem('supabase_config', JSON.stringify(this.config));
+      }
+      isConfigured(){ const {url,key,tableName} = this.config; return !!(url && key && tableName); }
+    }
 
-        // 加载记录数据
-        async function loadRecords() {
-            try {
-                const records = await fetchRecords();
-                renderRecords(records);
-            } catch (error) {
-                console.error('加载记录失败:', error);
-                showStatus('加载记录失败，请检查网络连接', 'error');
-            }
+    // ===== 主题管理 =====
+    class ThemeManager{
+      constructor(){ this.currentTheme = localStorage.getItem('theme') || 'light'; this.applyTheme(); }
+      toggle(){ this.currentTheme = this.currentTheme === 'light' ? 'dark' : 'light'; this.applyTheme(); localStorage.setItem('theme', this.currentTheme); }
+      applyTheme(){
+        document.documentElement.setAttribute('data-theme', this.currentTheme);
+        const t = document.getElementById('themeToggle'); if(t) t.textContent = this.currentTheme==='light'?'🌙':'☀️';
+      }
+    }
+
+    // ===== 时间工具 =====
+    class TimeUtils{
+      static getMonthRange(monthsAgo=0){
+        const now = new Date(); const y = now.getFullYear(); const m = now.getMonth() - monthsAgo;
+        const start = new Date(y, m, 1); const end = new Date(y, m + 1, 0, 23, 59, 59);
+        return { startDate:start, endDate:end };
+      }
+      static formatMonth(date){ return date.toLocaleDateString('zh-CN', {year:'numeric', month:'long'}); }
+      static formatTimeAgo(iso){
+        const now = new Date(), d = new Date(iso); const diff = Math.floor((now - d)/1000);
+        if(diff<60) return '刚刚'; if(diff<3600) return Math.floor(diff/60)+'分钟前'; if(diff<86400) return Math.floor(diff/3600)+'小时前';
+        if(diff<2592000) return Math.floor(diff/86400)+'天前'; return d.toLocaleDateString('zh-CN')+' '+d.toLocaleTimeString('zh-CN',{hour12:false});
+      }
+      static groupByMonth(records){
+        const groups = {};
+        records.forEach(r=>{
+          const month = this.formatMonth(new Date(r.created_at));
+          (groups[month] ||= []).push(r);
+        });
+        return groups;
+      }
+    }
+
+    // ===== 统计工具 =====
+    // ===== 统计工具 =====
+    class StatisticsUtils{
+      static sumDrops(vals){
+        let sum=0, refill=0;
+        for(let i=1;i<vals.length;i++){
+          const prev=vals[i-1], curr=vals[i];
+          if(curr<prev) sum += (prev-curr);     // 真实消耗（下降值）
+          else refill += (curr-prev);           // 补入量（不计入消耗）
         }
+        return { consume:+sum.toFixed(2), refill:+refill.toFixed(2) };
+      }
 
-        // 表单提交处理
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const electric = document.getElementById('electric').value;
-            const water = document.getElementById('water').value;
+      static calculateConsumptionStats(records){
+        if(!Array.isArray(records)||!records.length){
+          return { totalRecords:0, electricConsumption:0, waterConsumption:0, minElectric:0, minWater:0 };
+        }
+        const sorted=[...records].sort((a,b)=>new Date(a.created_at)-new Date(b.created_at));
+        const ele=sorted.filter(r=>r.electric!=null).map(r=>parseFloat(r.electric)).filter(v=>!Number.isNaN(v));
+        const wat=sorted.filter(r=>r.water!=null).map(r=>parseFloat(r.water)).filter(v=>!Number.isNaN(v));
+        const {consume:eleUse}=this.sumDrops(ele);
+        const {consume:watUse}=this.sumDrops(wat);
+        return {
+          totalRecords:records.length,
+          electricConsumption:eleUse,  // 本月电量消耗（下降值之和，单位跟你输入一致）
+          waterConsumption:watUse,     // 本月水量消耗（下降值之和）
+          minElectric: ele.length? Math.min(...ele):0,
+          minWater:   wat.length? Math.min(...wat):0
+        };
+      }
+    }
 
-            if (!electric && !water) {
-                showStatus('请至少填写电或水', 'error');
-                return;
-            }
+    // ===== 数据管理（Supabase REST） =====
+    class DataManager{
+      constructor(){ this.currentPeriod = 'current'; }
+      _headers(){ const {key}=configManager.config; return {'Content-Type':'application/json','apikey':key,'Authorization':`Bearer ${key}`}; }
+      async submitData(electric, water){
+        if(!configManager.isConfigured()) throw new Error('请先配置 Supabase 连接信息');
+        const {url, tableName} = configManager.config;
+        const api = `${url}/rest/v1/${encodeURIComponent(tableName)}`;
+        const payload = { created_at: new Date().toISOString() };
+        if(electric!=='') payload.electric = parseFloat(electric);
+        if(water!=='') payload.water = parseFloat(water);
+        const res = await fetch(api,{method:'POST',headers:{...this._headers(),'Prefer':'return=minimal'},body:JSON.stringify(payload)});
+        if(!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      async fetchRecords(period='current'){
+        if(!configManager.isConfigured()) throw new Error('请先配置 Supabase 连接信息');
+        const {url, tableName} = configManager.config;
+        let q = `${url}/rest/v1/${encodeURIComponent(tableName)}?select=*&order=created_at.desc`;
+        if(period!=='all'){
+          const monthsAgo = period==='current'?0:parseInt(period,10);
+          const {startDate,endDate} = TimeUtils.getMonthRange(monthsAgo);
+          q += `&created_at=gte.${startDate.toISOString()}&created_at=lte.${endDate.toISOString()}`;
+        }
+        const res = await fetch(q,{headers:this._headers()});
+        if(!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+        const data = await res.json();
+        if(data.length>0) lastRecord = data[0];
+        return data;
+      }
+      async getLastRecord(){
+        if(!configManager.isConfigured()) return null;
+        const {url, tableName} = configManager.config;
+        const q = `${url}/rest/v1/${encodeURIComponent(tableName)}?select=*&order=created_at.desc&limit=1`;
+        try{
+          const res = await fetch(q,{headers:this._headers()});
+          if(!res.ok) return null;
+          const arr = await res.json();
+          return arr.length? arr[0] : null;
+        }catch{ return null; }
+      }
+    }
 
-            setLoading(true);
-
-            try {
-                await submitData(electric, water);
-                showStatus('数据提交成功！', 'success');
-                form.reset();
-                
-                // 重新加载记录
-                setTimeout(() => {
-                    loadRecords();
-                }, 500);
-                
-            } catch (error) {
-                console.error('提交失败:', error);
-                showStatus('提交失败，请检查配置和网络连接', 'error');
-            } finally {
-                setLoading(false);
-            }
+    // ===== UI 管理 =====
+    class UIManager{
+      constructor(){
+        this.el = {
+          form: document.getElementById('dataForm'),
+          submitBtn: document.getElementById('submitBtn'),
+          btnText: document.querySelector('.btn-text'),
+          loading: document.getElementById('loading'),
+          status: document.getElementById('statusMessage'),
+          recordsList: document.getElementById('recordsList'),
+          emptyState: document.getElementById('emptyState'),
+          saveCfg: document.getElementById('saveConfigBtn'),
+          url: document.getElementById('supabaseUrl'),
+          key: document.getElementById('supabaseKey'),
+          table: document.getElementById('tableName'),
+          timeBtns: document.querySelectorAll('.time-btn'),
+          electric: document.getElementById('electric'),
+          water: document.getElementById('water'),
+          electricDiff: document.getElementById('electricDiff'),
+          waterDiff: document.getElementById('waterDiff'),
+          statsBox: document.getElementById('statisticsSection'),
+          cmpBox: document.getElementById('comparisonSection'),
+          eleConsTotal: document.getElementById('electricConsumptionTotal'),
+          watConsTotal: document.getElementById('waterConsumptionTotal'),
+          avgEle: document.getElementById('avgElectric'),
+          avgWat: document.getElementById('avgWater'),
+          totalRecs: document.getElementById('totalRecords'),
+          minEle: document.getElementById('minElectric'),
+          currentEleCons: document.getElementById('currentElectricConsumption'),
+          prevEleCons: document.getElementById('prevElectricConsumption'),
+          currentWatCons: document.getElementById('currentWaterConsumption'),
+          prevWatCons: document.getElementById('prevWaterConsumption'),
+          eleTrend: document.getElementById('electricTrend'),
+          watTrend: document.getElementById('waterTrend'),
+          historyToggle: document.getElementById('historyToggle')
+        };
+      }
+      toast(msg,type='success'){
+        this.el.status.textContent = msg;
+        this.el.status.className = `status-message status-${type}`;
+        this.el.status.style.display = 'block';
+        setTimeout(()=>{ this.el.status.style.display='none'; }, 2600);
+      }
+      loading(on){
+        if(on){ this.el.submitBtn.disabled = true; this.el.btnText.style.opacity='0'; this.el.loading.style.display='block'; }
+        else{ this.el.submitBtn.disabled = false; this.el.btnText.style.opacity='1'; this.el.loading.style.display='none'; }
+      }
+      setActivePeriod(period){
+        this.el.timeBtns.forEach(b=>{
+          b.classList.toggle('active', b.dataset.period===period);
+          b.setAttribute('aria-selected', b.dataset.period===period ? 'true':'false');
         });
-
-        // 页面加载时获取记录
-        document.addEventListener('DOMContentLoaded', () => {
-            // 检查配置
-            if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
-                showStatus('请先配置 Supabase URL 和 API Key', 'error');
-                return;
-            }
-            
-            loadRecords();
-            
-            // 每30秒自动刷新记录
-            setInterval(loadRecords, 30000);
+      }
+      renderStats(stats){
+        const fmt = (v,unit='') => Number.isFinite(v)? `${v}${unit}` : `0${unit}`;
+        this.el.eleConsTotal.textContent = `⚡ ${fmt(stats.electricConsumption,'%')}`;
+        this.el.watConsTotal.textContent = `💧 ${fmt(stats.waterConsumption,'L')}`;
+        this.el.avgEle.textContent = `⚡ ${fmt(Number(stats.avgElectric.toFixed(2)),'%')}`;
+        this.el.avgWat.textContent = `💧 ${fmt(Number(stats.avgWater.toFixed(2)),'L')}`;
+        this.el.totalRecs.textContent = `${stats.totalRecords} 次`;
+        this.el.minEle.textContent = `⚡ ${fmt(Number(stats.minElectric.toFixed(2)),'%')}`;
+        this.el.statsBox.style.display = 'block';
+      }
+      renderTrends(currEle, prevEle, currWat, prevWat){
+        const trendTxt = (c,p,unit) => {
+          const diff = (c - p);
+          if(!Number.isFinite(c) || !Number.isFinite(p)) return {text:'—',cls:'trend-same'};
+          if(Math.abs(diff)<1e-6) return {text:`持平 0${unit}`, cls:'trend-same'};
+          return diff>0 ? {text:`上升 +${diff.toFixed(2)}${unit}`, cls:'trend-up'} : {text:`下降 ${diff.toFixed(2)}${unit}`, cls:'trend-down'};
+        };
+        this.el.currentEleCons.textContent = `${currEle.toFixed(2)}%`;
+        this.el.prevEleCons.textContent = `${prevEle.toFixed(2)}%`;
+        const te = trendTxt(currEle, prevEle, '%'); this.el.eleTrend.textContent = te.text; this.el.eleTrend.className = `trend-indicator ${te.cls}`;
+        this.el.currentWatCons.textContent = `${currWat.toFixed(2)}L`;
+        this.el.prevWatCons.textContent = `${prevWat.toFixed(2)}L`;
+        const tw = trendTxt(currWat, prevWat, 'L'); this.el.watTrend.textContent = tw.text; this.el.watTrend.className = `trend-indicator ${tw.cls}`;
+        this.el.cmpBox.style.display = 'block';
+      }
+      showDiff(el, cur, last, unit){
+        if(cur==='' || last==null){ el.classList.remove('show'); return; }
+        const diff = parseFloat(cur) - parseFloat(last);
+        let cls='neutral', text=`${diff.toFixed(1)}${unit}`;
+        if(diff<0){ cls='consumed'; text=`消耗 ${(-diff).toFixed(1)}${unit} ↓`; }
+        else if(diff>0){ cls='saved'; text=`增加 +${diff.toFixed(1)}${unit} ↑`; }
+        el.textContent = text; el.className = `consumption-display ${cls} show`;
+      }
+      hideDiff(el){ el.classList.remove('show'); }
+      renderRecords(records){
+        if(!records || records.length===0){
+          this.el.recordsList.innerHTML = ''; this.el.recordsList.appendChild(this.el.emptyState); return;
+        }
+        this.el.emptyState.style.display='none';
+        const groups = TimeUtils.groupByMonth(records);
+        let html='';
+        Object.entries(groups).forEach(([month, list])=>{
+          html += `<div class="month-group">
+            <div class="month-header">${month}</div>
+            ${list.map(r=>`
+              <div class="record-item">
+                <div class="record-header">
+                  <div class="record-time" title="${new Date(r.created_at).toLocaleString()}">${TimeUtils.formatTimeAgo(r.created_at)}</div>
+                  <div class="consumption-info">记录ID: ${(r.id??'—')}</div>
+                </div>
+                <div class="record-data">
+                  <div class="data-item"><span class="electric-icon">⚡</span><span>${(r.electric??'N/A')}%</span></div>
+                  <div class="data-item"><span class="water-icon">💧</span><span>${(r.water??'N/A')}L</span></div>
+                </div>
+              </div>`).join('')}
+          </div>`;
         });
-    </script>
+        this.el.recordsList.innerHTML = html;
+      }
+      loadConfigToUI(cfg){ this.el.url.value = cfg.url; this.el.key.value = cfg.key; this.el.table.value = cfg.tableName; }
+    }
+
+    // ===== 初始化与事件 =====
+    function setupEvents(){
+      // 主题切换
+      document.getElementById('themeToggle').addEventListener('click', ()=> themeManager.toggle());
+
+      // 保存配置
+      uiManager.el.saveCfg.addEventListener('click', ()=>{
+        const url = uiManager.el.url.value.trim();
+        const key = uiManager.el.key.value.trim();
+        const table = uiManager.el.table.value.trim();
+        if(!url || !key || !table){ uiManager.toast('请填写完整的配置信息','error'); return; }
+        configManager.saveConfig(url,key,table);
+        uiManager.toast('配置已保存');
+        // 重新拉取最后一条记录用于差值显示
+        loadLastRecord();
+      });
+
+      // 月份切换
+      uiManager.el.timeBtns.forEach(btn=>{
+        btn.addEventListener('click', async ()=>{
+          const period = btn.dataset.period;
+          dataManager.currentPeriod = period;
+          uiManager.setActivePeriod(period);
+          await loadRecords(period);
+          await updateStatsAndTrends(period);
+        });
+      });
+
+      // 历史折叠
+      uiManager.el.historyToggle.addEventListener('click', ()=>{
+        uiManager.el.historyToggle.classList.toggle('collapsed');
+        uiManager.el.recordsList.classList.toggle('expanded');
+      });
+
+      // 表单提交
+      uiManager.el.form.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const ele = uiManager.el.electric.value, wat = uiManager.el.water.value;
+        if(!ele && !wat){ uiManager.toast('请至少填写一项数据','error'); return; }
+        uiManager.loading(true);
+        try{
+          await dataManager.submitData(ele, wat);
+          uiManager.toast('数据提交成功！','success');
+          uiManager.el.form.reset();
+          // 乐观刷新
+          setTimeout(async ()=>{
+            await loadRecords(dataManager.currentPeriod);
+            await loadLastRecord();
+            await updateStatsAndTrends(dataManager.currentPeriod);
+          }, 300);
+        }catch(err){
+          console.error(err); uiManager.toast(err.message || '提交失败','error');
+        }finally{ uiManager.loading(false); }
+      });
+
+      // 差值提示
+      const bindDiff = (inputEl, diffEl, key, unit) => {
+        inputEl.addEventListener('input', e=>{
+          const val = e.target.value;
+          if(val!=='' && lastRecord && lastRecord[key]!=null){
+            uiManager.showDiff(diffEl, val, lastRecord[key], unit);
+          }else{ uiManager.hideDiff(diffEl); }
+        });
+        inputEl.addEventListener('blur', ()=> setTimeout(()=> uiManager.hideDiff(diffEl), 200));
+      };
+      bindDiff(uiManager.el.electric, uiManager.el.electricDiff, 'electric', '%');
+      bindDiff(uiManager.el.water, uiManager.el.waterDiff, 'water', 'L');
+
+      // 快捷键：Enter 提交
+      ['electric','water'].forEach(id=>{
+        document.getElementById(id).addEventListener('keydown', (e)=>{
+          if(e.key==='Enter'){ e.preventDefault(); uiManager.el.submitBtn.click(); }
+        });
+      });
+    }
+
+    async function updateStatsAndTrends(period){
+      try{
+        const curRecs = await dataManager.fetchRecords(period);
+        const stats = StatisticsUtils.calculateConsumptionStats(curRecs);
+        uiManager.renderStats(stats);
+
+        // 对比上月（只有当 period 是 “本月” 或者是数字 >=1 时，才有可比的“上一个月”）
+        const monthsAgo = period==='current'?0:parseInt(period,10);
+        if(Number.isFinite(monthsAgo)){
+          const prevPeriod = (monthsAgo+1).toString();
+          const prevRecs = await dataManager.fetchRecords(prevPeriod);
+          const prevStats = StatisticsUtils.calculateConsumptionStats(prevRecs);
+          uiManager.renderTrends(
+            stats.electricConsumption||0, prevStats.electricConsumption||0,
+            stats.waterConsumption||0, prevStats.waterConsumption||0
+          );
+        }
+      }catch(e){
+        console.warn('统计面板更新失败：', e);
+      }
+    }
+
+    async function loadLastRecord(){
+      try{ lastRecord = await dataManager.getLastRecord(); }catch(e){ console.warn('加载最后记录失败', e); }
+    }
+
+    async function loadRecords(period='current'){
+      try{
+        const recs = await dataManager.fetchRecords(period);
+        uiManager.renderRecords(recs);
+      }catch(e){
+        console.error('加载记录失败', e);
+        if(configManager.isConfigured()){ uiManager.toast('加载记录失败，请检查网络/Supabase配置','error'); }
+      }
+    }
+
+    function init(){
+      configManager = new ConfigManager();
+      themeManager = new ThemeManager();
+      dataManager = new DataManager();
+      uiManager = new UIManager();
+      uiManager.loadConfigToUI(configManager.config);
+      setupEvents();
+      // 初始载入
+      loadRecords('current');
+      loadLastRecord();
+      updateStatsAndTrends('current');
+      // 每 30 秒自动刷新记录列表
+      setInterval(()=> loadRecords(dataManager.currentPeriod), 30000);
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>
-
